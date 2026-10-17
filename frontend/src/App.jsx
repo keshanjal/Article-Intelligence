@@ -41,7 +41,7 @@ export default function App() {
     'Punjabi', 'Russian', 'Spanish', 'Tamil', 'Telugu', 'Urdu'
   ];
   
-  const lengths = ['Short', 'Key points'];
+const lengths = ['Short', 'Detailed', 'Key points'];
   const readingLevels = ['Elementary', 'General Public', 'Academic'];
 
   // --- UPGRADED: Save preferences to LocalStorage whenever they change ---
