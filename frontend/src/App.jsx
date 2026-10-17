@@ -179,12 +179,12 @@ export default function App() {
           body: JSON.stringify({ content: extraction.text, target_language: targetLanguage, length_format: targetLength, reading_level: targetLevel })
         });
       } else if (inputMode === 'text') {
-        response = await fetch('http://localhost:8000/api/summarize/text', {
+        response = await fetch('https://article-intelligence-api.onrender.com/api/summarize/text', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content: textInput, target_language: targetLanguage, length_format: targetLength, reading_level: targetLevel })
         });
       } else if (inputMode === 'url') {
-        response = await fetch('http://localhost:8000/api/summarize/url', {
+        response = await fetch('https://article-intelligence-api.onrender.com/api/summarize/url', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: urlInput, target_language: targetLanguage, length_format: targetLength, reading_level: targetLevel })
         });
@@ -194,7 +194,7 @@ export default function App() {
         formData.append('target_language', targetLanguage);
         formData.append('length_format', targetLength);
         formData.append('reading_level', targetLevel);
-        response = await fetch('http://localhost:8000/api/summarize/file', { method: 'POST', body: formData });
+        response = await fetch('https://article-intelligence-api.onrender.com/api/summarize/file', { method: 'POST', body: formData });
       }
 
       if (!response.ok) throw new Error('Failed to generate summary from backend');
@@ -226,7 +226,7 @@ export default function App() {
     setIsChatting(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/chat', {
+      const response = await fetch('https://article-intelligence-api.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ article_text: fullText, question: userQuestion, language: language })
