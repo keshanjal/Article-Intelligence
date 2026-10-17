@@ -174,7 +174,7 @@ export default function App() {
         
         if (!extraction || !extraction.text) throw new Error("Could not read text from this page.");
         
-        response = await fetch('http://localhost:8000/api/summarize/text', {
+        response = await fetch('https://article-intelligence-api.onrender.com/api/summarize/text', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content: extraction.text, target_language: targetLanguage, length_format: targetLength, reading_level: targetLevel })
         });
