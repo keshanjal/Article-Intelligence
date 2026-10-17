@@ -1,0 +1,10 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* Force a strict width and minimum height for the Chrome Extension popup */
+body {
+  /* width: 500px;
+  min-height: 600px;
+  overflow-x: hidden; */
+  background-color: #f8fafc;
+}

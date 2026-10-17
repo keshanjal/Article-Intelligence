@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Article Intelligence",
+  "version": "1.0.0",
+  "description": "Summarize, translate, and analyze any article instantly.",
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "Open Summarizer",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*"
+  ]
+}
