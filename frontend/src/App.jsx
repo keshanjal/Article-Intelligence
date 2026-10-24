@@ -264,7 +264,12 @@ const lengths = ['Short', 'Detailed', 'Key points'];
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
           <div className="flex space-x-2 mb-6 bg-slate-100 p-1 rounded-xl flex-wrap gap-y-2">
             <button onClick={() => setInputMode('text')} className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium flex items-center justify-center transition-all ${inputMode === 'text' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}><FileText className="w-4 h-4 mr-2" /> Paste Text</button>
-            <button onClick={() => setInputMode('url')} className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium flex items-center justify-center transition-all ${inputMode === 'url' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}><LinkIcon className="w-4 h-4 mr-2" /> Article URL</button>
+            <button 
+  onClick={() => setInputMode('url')} 
+  className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium flex items-center justify-center transition-all ${inputMode === 'url' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}
+>
+  <LinkIcon className="w-4 h-4 mr-2" /> Article URL
+</button>
             <button onClick={() => setInputMode('file')} className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium flex items-center justify-center transition-all ${inputMode === 'file' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}><Upload className="w-4 h-4 mr-2" /> Upload File</button>
             {window.chrome && window.chrome.tabs && (
               <button onClick={() => setInputMode('tab')} className={`flex-1 min-w-[120px] py-2.5 rounded-lg font-medium flex items-center justify-center transition-all ${inputMode === 'tab' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'}`}><Monitor className="w-4 h-4 mr-2" /> Current Tab</button>
@@ -302,13 +307,13 @@ const lengths = ['Short', 'Detailed', 'Key points'];
             
             {inputMode === 'url' && (
               <div className="relative">
-                <input 
-                  type="url" 
-                  className="w-full p-4 pr-12 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
-                  placeholder="https://example.com/article" 
-                  value={urlInput} 
-                  onChange={(e) => setUrlInput(e.target.value)} 
-                />
+          <input 
+  type="url" 
+  className="w-full p-4 pr-12 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+  placeholder="https://example.com/article" 
+  value={urlInput} 
+  onChange={(e) => setUrlInput(e.target.value)} 
+/>
                 {urlInput && (
                   <button 
                     onClick={() => setUrlInput('')} 

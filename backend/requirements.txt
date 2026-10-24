@@ -4,5 +4,5 @@ groq
 python-dotenv
 python-multipart
 pydantic
-beautifulsoup4
+trafilatura
 requests
