@@ -2,36 +2,28 @@ import io
 import importlib
 import zipfile
 from xml.etree import ElementTree
-import requests
+from curl_cffi import requests as cffi_requests
 import trafilatura
 
 class ContentExtractor:
     @staticmethod
     def extract_from_url(url: str) -> str:
-        """Fetches and extracts clean body text from a webpage URL using Trafilatura."""
+        """Fetches and extracts clean body text, bypassing Cloudflare using Chrome impersonation."""
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Referer": "https://www.google.com/"
-            }
+            # impersonate="chrome120" mimics a real browser's network fingerprint to bypass Cloudflare 403s
+            response = cffi_requests.get(url, impersonate="chrome120", timeout=15)
             
-            response = requests.get(url, headers=headers, timeout=15)
-            response.raise_for_status()
-            
-            # Trafilatura cleanly extracts just the main article text
+            if response.status_code == 403:
+                raise Exception("HTTP 403: This site uses enterprise-grade bot protection. Please use your extension's 'Current Tab' button to read it directly from your screen.")
+                
+            # Trafilatura cleanly extracts just the main article text from the HTML
             text = trafilatura.extract(response.text)
             
             if not text or len(text) < 100:
-                raise ValueError("Could not extract readable article text. The site might strictly require JavaScript to load its content.")
+                raise ValueError("Could not extract readable text. The site might require JavaScript to load its content.")
                 
             return text
             
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 403:
-                raise Exception("HTTP 403 Forbidden: This specific website actively blocks automated bots. Use the 'Current Tab' extension button instead.")
-            raise Exception(f"Failed to fetch the webpage: {e.response.status_code}")
         except Exception as e:
             raise Exception(f"Extraction failed: {str(e)}")
 
