@@ -10,25 +10,32 @@ import {
 export default function App() {
   const [inputMode, setInputMode] = useState('text');
   
-  // --- UPGRADED: Initialize state from LocalStorage ---
+  // Initialize preferences from LocalStorage
   const [language, setLanguage] = useState(() => localStorage.getItem('ai_pref_lang') || 'English');
   const [summaryLength, setSummaryLength] = useState(() => localStorage.getItem('ai_pref_len') || 'Short');
   const [readingLevel, setReadingLevel] = useState(() => localStorage.getItem('ai_pref_level') || 'General Public');
   
+  // Input fields
   const [textInput, setTextInput] = useState('');
   const [urlInput, setUrlInput] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   
-  const [summaryData, setSummaryData] = useState(null); 
-  const [fullText, setFullText] = useState('');
+  // --- UPGRADED: Object-based states to save results independently for each tab ---
+  const [summaries, setSummaries] = useState({ text: null, url: null, file: null, tab: null });
+  const [fullTexts, setFullTexts] = useState({ text: '', url: '', file: '', tab: '' }); 
+  const [chatHistories, setChatHistories] = useState({ text: [], url: [], file: [], tab: [] });
+  const [chatInputs, setChatInputs] = useState({ text: '', url: '', file: '', tab: '' });
+  
+  // Helper variables for the currently active tab
+  const currentSummary = summaries[inputMode];
+  const currentFullText = fullTexts[inputMode];
+  const currentChatHistory = chatHistories[inputMode] || [];
+  const currentChatInput = chatInputs[inputMode] || '';
+
   const [isLoading, setIsLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  
-  const [chatHistory, setChatHistory] = useState([]);
-  const [chatInput, setChatInput] = useState('');
   const [isChatting, setIsChatting] = useState(false);
-
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
 
   const fileInputRef = useRef(null);
@@ -41,10 +48,10 @@ export default function App() {
     'Punjabi', 'Russian', 'Spanish', 'Tamil', 'Telugu', 'Urdu'
   ];
   
-const lengths = ['Short', 'Detailed', 'Key points'];
+  const lengths = ['Short', 'Detailed', 'Key points'];
   const readingLevels = ['Elementary', 'General Public', 'Academic'];
 
-  // --- UPGRADED: Save preferences to LocalStorage whenever they change ---
+  // Save preferences to LocalStorage whenever they change
   useEffect(() => {
     localStorage.setItem('ai_pref_lang', language);
     localStorage.setItem('ai_pref_len', summaryLength);
@@ -55,7 +62,7 @@ const lengths = ['Short', 'Detailed', 'Key points'];
     return () => {
       window.speechSynthesis.cancel();
     };
-  }, [summaryData]);
+  }, [currentSummary]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -67,9 +74,9 @@ const lengths = ['Short', 'Detailed', 'Key points'];
   };
 
   const handleCopy = async () => {
-    if (!summaryData?.summary) return;
+    if (!currentSummary?.summary) return;
     try {
-      await navigator.clipboard.writeText(summaryData.summary);
+      await navigator.clipboard.writeText(currentSummary.summary);
       setCopied(true);
       showToast('Summary copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
@@ -79,13 +86,13 @@ const lengths = ['Short', 'Detailed', 'Key points'];
   };
 
   const handleSpeak = () => {
-    if (!summaryData?.summary) return;
+    if (!currentSummary?.summary) return;
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(summaryData.summary);
+    const utterance = new SpeechSynthesisUtterance(currentSummary.summary);
     const langCodeMap = {
       'Arabic': 'ar-SA', 'Bengali': 'bn-IN', 'Chinese (Mandarin)': 'zh-CN',
       'English': 'en-US', 'French': 'fr-FR', 'German': 'de-DE',
@@ -103,9 +110,9 @@ const lengths = ['Short', 'Detailed', 'Key points'];
   };
 
   const handleDownloadTxt = () => {
-    if (!summaryData) return;
+    if (!currentSummary) return;
     const element = document.createElement("a");
-    const file = new Blob([summaryData.summary], { type: 'text/plain;charset=utf-8' });
+    const file = new Blob([currentSummary.summary], { type: 'text/plain;charset=utf-8' });
     element.href = URL.createObjectURL(file);
     element.download = `${language}_Summary.txt`;
     document.body.appendChild(element);
@@ -125,10 +132,12 @@ const lengths = ['Short', 'Detailed', 'Key points'];
   };
 
   const handleDismiss = () => {
-    setSummaryData(null);
-    setFullText('');
-    setChatHistory([]);
-    setChatInput('');
+    // Clear only the current tab's data
+    setSummaries(prev => ({ ...prev, [inputMode]: null }));
+    setFullTexts(prev => ({ ...prev, [inputMode]: '' }));
+    setChatHistories(prev => ({ ...prev, [inputMode]: [] }));
+    setChatInputs(prev => ({ ...prev, [inputMode]: '' }));
+    
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -137,17 +146,17 @@ const lengths = ['Short', 'Detailed', 'Key points'];
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
     setLanguage(newLang);
-    if (summaryData && !isLoading) handleSummarize(newLang, summaryLength, readingLevel);
+    if (currentSummary && !isLoading) handleSummarize(newLang, summaryLength, readingLevel);
   };
 
   const handleLengthChange = (newLen) => {
     setSummaryLength(newLen);
-    if (summaryData && !isLoading) handleSummarize(language, newLen, readingLevel);
+    if (currentSummary && !isLoading) handleSummarize(language, newLen, readingLevel);
   };
 
   const handleLevelChange = (newLevel) => {
     setReadingLevel(newLevel);
-    if (summaryData && !isLoading) handleSummarize(language, summaryLength, newLevel);
+    if (currentSummary && !isLoading) handleSummarize(language, summaryLength, newLevel);
   };
 
   const handleSummarize = async (targetLanguage = language, targetLength = summaryLength, targetLevel = readingLevel) => {
@@ -158,8 +167,11 @@ const lengths = ['Short', 'Detailed', 'Key points'];
     window.speechSynthesis.cancel();
     setIsSpeaking(false);
     setIsLoading(true);
-    setSummaryData(null);
     setCopied(false);
+    
+    // Reset current tab states before fetching
+    setSummaries(prev => ({ ...prev, [inputMode]: null }));
+    setChatHistories(prev => ({ ...prev, [inputMode]: [] }));
 
     setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
 
@@ -203,13 +215,16 @@ const lengths = ['Short', 'Detailed', 'Key points'];
       const cleanJsonStr = data.summary.replace(/```json/gi, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(cleanJsonStr);
       
-      setSummaryData(parsedData);
-      setFullText(data.full_text);
-      setChatHistory([]);
+      // Save results specifically to the current tab
+      setSummaries(prev => ({ ...prev, [inputMode]: parsedData }));
+      setFullTexts(prev => ({ ...prev, [inputMode]: data.full_text }));
       showToast('Intelligence Dashboard generated!');
 
     } catch (error) {
-      setSummaryData({ summary: "Failed to parse structured AI response. Please try again.", sentiment: "Error", tone: "Error", key_terms: [] });
+      setSummaries(prev => ({ 
+        ...prev, 
+        [inputMode]: { summary: "Failed to parse structured AI response. Please try again.", sentiment: "Error", tone: "Error", key_terms: [] } 
+      }));
       showToast('Analysis encountered an issue', 'error');
     } finally {
       setIsLoading(false);
@@ -218,29 +233,44 @@ const lengths = ['Short', 'Detailed', 'Key points'];
 
   const handleChatSubmit = async (e) => {
     e.preventDefault();
-    if (!chatInput.trim() || !fullText) return;
+    if (!currentChatInput.trim() || !currentFullText) return;
 
-    const userQuestion = chatInput.trim();
-    setChatInput('');
-    setChatHistory(prev => [...prev, { role: 'user', content: userQuestion }]);
+    const userQuestion = currentChatInput.trim();
+    
+    // Clear the input and add user message to the specific tab's history
+    setChatInputs(prev => ({ ...prev, [inputMode]: '' }));
+    setChatHistories(prev => ({ 
+      ...prev, 
+      [inputMode]: [...(prev[inputMode] || []), { role: 'user', content: userQuestion }] 
+    }));
+    
     setIsChatting(true);
 
     try {
       const response = await fetch('https://article-intelligence-api.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ article_text: fullText, question: userQuestion, language: language })
+        body: JSON.stringify({ article_text: currentFullText, question: userQuestion, language: language })
       });
       
       const data = await response.json();
       
       if (response.ok && data.answer) {
-        setChatHistory(prev => [...prev, { role: 'ai', content: data.answer }]);
+        setChatHistories(prev => ({ 
+          ...prev, 
+          [inputMode]: [...(prev[inputMode] || []), { role: 'ai', content: data.answer }] 
+        }));
       } else {
-        setChatHistory(prev => [...prev, { role: 'ai', content: `Error: ${data.detail || 'Could not fetch answer.'}` }]);
+        setChatHistories(prev => ({ 
+          ...prev, 
+          [inputMode]: [...(prev[inputMode] || []), { role: 'ai', content: `Error: ${data.detail || 'Could not fetch answer.'}` }] 
+        }));
       }
     } catch (error) {
-      setChatHistory(prev => [...prev, { role: 'ai', content: 'Sorry, I encountered a network error while connecting to the AI.' }]);
+      setChatHistories(prev => ({ 
+        ...prev, 
+        [inputMode]: [...(prev[inputMode] || []), { role: 'ai', content: 'Sorry, I encountered a network error while connecting to the AI.' }] 
+      }));
       showToast('Chat failed', 'error');
     } finally {
       setIsChatting(false);
@@ -387,7 +417,7 @@ const lengths = ['Short', 'Detailed', 'Key points'];
         </div>
 
         <div ref={resultsRef} className="scroll-mt-8">
-          {!summaryData && !isLoading && (
+          {!currentSummary && !isLoading && (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center border-2 border-dashed border-slate-200 rounded-2xl bg-white mt-8">
               <div className="bg-blue-50 p-4 rounded-full mb-4"><Sparkles className="w-8 h-8 text-blue-600" /></div>
               <h3 className="text-xl font-bold text-slate-700 mb-2">Ready to Analyze</h3>
@@ -405,7 +435,7 @@ const lengths = ['Short', 'Detailed', 'Key points'];
             </div>
           )}
 
-          {summaryData && !isLoading && (
+          {currentSummary && !isLoading && (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mt-8 relative overflow-hidden">
               <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-start sm:items-center pt-2 pb-4 mb-6 border-b border-slate-100 gap-4">
                 <div className="flex flex-col">
@@ -437,19 +467,19 @@ const lengths = ['Short', 'Detailed', 'Key points'];
                   <div className="flex items-center px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg">
                     <Activity className="w-4 h-4 text-blue-500 mr-2" />
                     <span className="text-sm font-semibold text-slate-600 mr-2">Sentiment:</span>
-                    <span className="text-sm font-bold text-slate-800">{summaryData.sentiment}</span>
+                    <span className="text-sm font-bold text-slate-800">{currentSummary.sentiment}</span>
                   </div>
                   <div className="flex items-center px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg">
                     <BookOpen className="w-4 h-4 text-purple-500 mr-2" />
                     <span className="text-sm font-semibold text-slate-600 mr-2">Tone:</span>
-                    <span className="text-sm font-bold text-slate-800">{summaryData.tone}</span>
+                    <span className="text-sm font-bold text-slate-800">{currentSummary.tone}</span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <div className="md:col-span-2 prose prose-slate max-w-none text-slate-700 leading-relaxed text-lg">
                     <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Article Summary</h3>
-                    <ReactMarkdown>{summaryData.summary || ''}</ReactMarkdown>
+                    <ReactMarkdown>{currentSummary.summary || ''}</ReactMarkdown>
                   </div>
                   
                   <div className="md:col-span-1">
@@ -458,7 +488,7 @@ const lengths = ['Short', 'Detailed', 'Key points'];
                         <Brain className="w-4 h-4 mr-2" /> Key Vocabulary
                       </h3>
                       <ul className="space-y-4">
-                        {summaryData.key_terms && summaryData.key_terms.map((item, index) => (
+                        {currentSummary.key_terms && currentSummary.key_terms.map((item, index) => (
                           <li key={index} className="text-sm">
                             <span className="font-bold text-slate-800 block mb-0.5">{item.term}</span>
                             <span className="text-slate-600">{item.definition}</span>
@@ -477,10 +507,10 @@ const lengths = ['Short', 'Detailed', 'Key points'];
                 </h3>
                 
                 <div className="bg-slate-50 rounded-xl p-4 mb-4 max-h-80 overflow-y-auto space-y-4">
-                  {chatHistory.length === 0 ? (
+                  {currentChatHistory.length === 0 ? (
                     <p className="text-slate-500 text-sm text-center py-4">Ask a specific question about the text. The AI will find the answer for you.</p>
                   ) : (
-                    chatHistory.map((msg, idx) => (
+                    currentChatHistory.map((msg, idx) => (
                       <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white border border-slate-200 text-slate-700 rounded-bl-none shadow-sm'}`}>
                           <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'prose-invert' : ''}`}>
@@ -503,15 +533,15 @@ const lengths = ['Short', 'Detailed', 'Key points'];
                 <form onSubmit={handleChatSubmit} className="flex gap-2">
                   <input
                     type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
+                    value={currentChatInput}
+                    onChange={(e) => setChatInputs(prev => ({ ...prev, [inputMode]: e.target.value }))}
                     placeholder="Ask a question..."
                     className="flex-1 p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     disabled={isChatting}
                   />
                   <button 
                     type="submit" 
-                    disabled={!chatInput.trim() || isChatting}
+                    disabled={!currentChatInput.trim() || isChatting}
                     className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                   >
                     <Send className="w-5 h-5" />
