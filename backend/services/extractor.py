@@ -10,8 +10,11 @@ class ContentExtractor:
     def extract_from_url(url: str) -> str:
         """Fetches and extracts clean body text, bypassing Cloudflare using Chrome impersonation."""
         try:
+            # Force the Pydantic HttpUrl object into a standard Python string
+            clean_url = str(url)
+            
             # impersonate="chrome120" mimics a real browser's network fingerprint to bypass Cloudflare 403s
-            response = cffi_requests.get(url, impersonate="chrome120", timeout=15)
+            response = cffi_requests.get(clean_url, impersonate="chrome120", timeout=15)
             
             if response.status_code == 403:
                 raise Exception("HTTP 403: This site uses enterprise-grade bot protection. Please use your extension's 'Current Tab' button to read it directly from your screen.")
