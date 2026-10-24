@@ -58,6 +58,22 @@ export default function App() {
     localStorage.setItem('ai_pref_level', readingLevel);
   }, [language, summaryLength, readingLevel]);
 
+  // --- Check if opened via Right-Click Context Menu ---
+useEffect(() => {
+  if (window.chrome && chrome.storage) {
+    chrome.storage.local.get(['ai_ext_mode', 'ai_ext_text', 'ai_ext_url'], (result) => {
+      if (result.ai_ext_mode) {
+        setInputMode(result.ai_ext_mode);
+        if (result.ai_ext_text) setTextInput(result.ai_ext_text);
+        if (result.ai_ext_url) setUrlInput(result.ai_ext_url);
+        
+        // Clear the storage so it doesn't trigger again on normal opens
+        chrome.storage.local.remove(['ai_ext_mode', 'ai_ext_text', 'ai_ext_url']);
+      }
+    });
+  }
+}, []);
+
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
